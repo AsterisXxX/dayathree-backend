@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -9,10 +10,20 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api/v1');
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      forbidUnknownValues: true,
+    }),
+  );
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('DAYATHREE Backend API')
     .setDescription('Kopi Kuy Operations Platform')
     .setVersion('1.0.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
