@@ -11,6 +11,7 @@ describe('AuthService', () => {
 
   const passwords = {
     verify: jest.fn(),
+    getDummyHash: jest.fn(),
   };
 
   const sessions = {
@@ -23,6 +24,8 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    passwords.getDummyHash.mockResolvedValue('dummy-hash');
+    passwords.verify.mockResolvedValue(false);
 
     service = new AuthService(
       prisma as unknown as PrismaService,
@@ -100,7 +103,11 @@ describe('AuthService', () => {
       service.login('rider@example.com', 'Password123!'),
     ).rejects.toThrow(UnauthorizedException);
 
-    expect(passwords.verify).not.toHaveBeenCalled();
+    expect(passwords.getDummyHash).toHaveBeenCalledTimes(1);
+    expect(passwords.verify).toHaveBeenCalledWith(
+      'dummy-hash',
+      'Password123!',
+    );
     expect(sessions.create).not.toHaveBeenCalled();
   });
 
@@ -114,6 +121,42 @@ describe('AuthService', () => {
     ).rejects.toThrow(UnauthorizedException);
 
     expect(prisma.user.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('uses dummy verification for a nonexistent account', async () => {
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await expect(
+      service.login('missing@example.com', 'Password123!'),
+    ).rejects.toThrow(UnauthorizedException);
+
+    expect(passwords.getDummyHash).toHaveBeenCalledTimes(1);
+    expect(passwords.verify).toHaveBeenCalledWith(
+      'dummy-hash',
+      'Password123!',
+    );
+    expect(sessions.create).not.toHaveBeenCalled();
+  });
+
+  it('never creates a session for an inactive account even if dummy verification succeeds', async () => {
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'inactive-user',
+      passwordHash: 'stored-hash',
+      isActive: false,
+    });
+
+    passwords.verify.mockResolvedValue(true);
+
+    await expect(
+      service.login('inactive@example.com', 'Password123!'),
+    ).rejects.toThrow(UnauthorizedException);
+
+    expect(passwords.getDummyHash).toHaveBeenCalledTimes(1);
+    expect(passwords.verify).toHaveBeenCalledWith(
+      'dummy-hash',
+      'Password123!',
+    );
+    expect(sessions.create).not.toHaveBeenCalled();
   });
 
   it('revokes a session on logout', async () => {

@@ -27,16 +27,16 @@ export class AuthService {
       },
     });
 
-    if (!user?.isActive) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const passwordHash = user?.isActive
+      ? user.passwordHash
+      : await this.passwords.getDummyHash();
 
     const valid = await this.passwords.verify(
-      user.passwordHash,
+      passwordHash,
       password,
     );
 
-    if (!valid) {
+    if (!user?.isActive || !valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
