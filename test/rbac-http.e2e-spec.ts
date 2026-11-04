@@ -2,7 +2,6 @@ import {
   Controller,
   Get,
   INestApplication,
-  UseGuards,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
@@ -12,23 +11,20 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module';
 import { AuthModule } from '../src/auth/auth.module';
 import { PasswordService } from '../src/auth/password.service';
-import { Roles, STAFF_ROLES } from '../src/auth/roles.decorator';
-import { RolesGuard } from '../src/auth/roles.guard';
-import { SessionGuard } from '../src/auth/session.guard';
+import { STAFF_ROLES } from '../src/auth/roles.decorator';
+import { StaffRoles } from '../src/auth/staff-roles.decorator';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 @Controller('rbac-test')
 class RbacTestController {
   @Get('rider')
-  @UseGuards(SessionGuard, RolesGuard)
-  @Roles(STAFF_ROLES.RIDER)
+  @StaffRoles(STAFF_ROLES.RIDER)
   rider() {
     return { access: 'rider' };
   }
 
   @Get('checker')
-  @UseGuards(SessionGuard, RolesGuard)
-  @Roles(STAFF_ROLES.CHECKER)
+  @StaffRoles(STAFF_ROLES.CHECKER)
   checker() {
     return { access: 'checker' };
   }
